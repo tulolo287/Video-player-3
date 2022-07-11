@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -32,7 +33,29 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.MyViewHold
 
     @Override
     public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
+        int index = folderName.get(position).lastIndexOf("/");
+        String folderNames = folderName.get(position).substring(index + 1);
+         holder.name.setText(folderNames);
+         holder.countVideos.setText(String.valueOf(countVideos(folderName.get(position))));
 
+         holder.itemView.setOnClickListener(new View.OnClickListener() {
+             @Override
+             public void onClick(View view) {
+                 Toast.makeText(context, folderNames, Toast.LENGTH_LONG).show();
+             }
+         });
+    }
+
+    int countVideos(String folders) {
+        int count = 0;
+
+        for (VideoModel model : videoModels) {
+            if (model.getPath().substring(0, model.getPath().lastIndexOf("/")).endsWith(folders));
+            {
+                count++;
+            }
+        }
+        return count;
     }
 
     @Override
