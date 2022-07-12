@@ -1,6 +1,8 @@
 package com.example.videoplayer3;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,7 +34,7 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.MyViewHold
     }
 
     @Override
-    public void onBindViewHolder(@NonNull MyViewHolder holder, int position) {
+    public void onBindViewHolder(@NonNull MyViewHolder holder, @SuppressLint("RecyclerView") int position) {
         int index = folderName.get(position).lastIndexOf("/");
         String folderNames = folderName.get(position).substring(index + 1);
          holder.name.setText(folderNames);
@@ -41,7 +43,10 @@ public class FolderAdapter extends RecyclerView.Adapter<FolderAdapter.MyViewHold
          holder.itemView.setOnClickListener(new View.OnClickListener() {
              @Override
              public void onClick(View view) {
-                 Toast.makeText(context, folderNames, Toast.LENGTH_LONG).show();
+                 Intent intent = new Intent(context, VideoFolder.class);
+                 intent.putExtra("folderName", folderName.get(position));
+                 context.startActivity(intent);
+
              }
          });
     }
