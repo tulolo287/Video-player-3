@@ -1,4 +1,4 @@
-package com.example.videoplayer3;
+package com.example.videoplayer3.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -10,6 +10,10 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.widget.Toast;
+
+import com.example.videoplayer3.adapter.FolderAdapter;
+import com.example.videoplayer3.R;
+import com.example.videoplayer3.VideoModel;
 
 import java.util.ArrayList;
 

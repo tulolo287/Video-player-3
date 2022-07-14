@@ -1,4 +1,4 @@
-package com.example.videoplayer3;
+package com.example.videoplayer3.adapter;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -7,10 +7,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.videoplayer3.R;
+import com.example.videoplayer3.activity.VideoFolder;
+import com.example.videoplayer3.VideoModel;
 
 import java.util.ArrayList;
 

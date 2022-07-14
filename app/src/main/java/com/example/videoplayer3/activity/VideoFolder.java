@@ -1,9 +1,11 @@
-package com.example.videoplayer3;
+package com.example.videoplayer3.activity;
 
 import android.os.Bundle;
 
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.videoplayer3.R;
 
 public class VideoFolder extends AppCompatActivity {
     @Override
