@@ -74,7 +74,7 @@ public class VideoModel {
         this.wh = wh;
     }
 
-    public VideoModel(String id, String path, String title, String size, String resolution, String duration, String displayName, String wh) {
+    public VideoModel(String id, String path, String title, String size, String duration, String resolution, String displayName, String wh) {
         this.id = id;
         this.path = path;
         this.title = title;
