@@ -11,6 +11,7 @@ import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -71,10 +72,13 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
                 shareFile(position);
             });
             bottomSheetView.findViewById(R.id.rename).setOnClickListener(view3 -> {
-                renameFile(position, view3);
+                Toast.makeText(context, "Rename", Toast.LENGTH_SHORT).show();
+                renameFile(position, view);
+                bottomSheetDialog.dismiss();
             });
             bottomSheetView.findViewById(R.id.delete).setOnClickListener(view4 -> {
-                deleteFile(position, view4);
+                deleteFile(position, view);
+                bottomSheetDialog.dismiss();
             });
             bottomSheetView.findViewById(R.id.properties).setOnClickListener(view5 -> {
                 propertiesFile(position);
@@ -84,6 +88,25 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
     }
 
     private void propertiesFile(int position) {
+        Dialog dialog = new Dialog(context);
+        dialog.setContentView(R.layout.file_properties);
+
+        String name = videoFolder.get(position).getDisplayName();
+        String size = videoFolder.get(position).getSize();
+        String path = videoFolder.get(position).getPath();
+        String resolution = videoFolder.get(position).getResolution();
+
+        TextView propName = dialog.findViewById(R.id.prop_name);
+        TextView propSize = dialog.findViewById(R.id.prop_size);
+        TextView propPath = dialog.findViewById(R.id.prop_path);
+        TextView propResolution = dialog.findViewById(R.id.prop_resolution);
+
+        propName.setText(name);
+        propSize.setText(size);
+        propPath.setText(path);
+        propResolution.setText(resolution);
+
+        dialog.show();
     }
 
     private void deleteFile(int position, View view) {
@@ -113,11 +136,12 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
     }
 
     private void renameFile(int position, View view) {
+
         Dialog dialog = new Dialog(context);
         dialog.setContentView(R.layout.rename_layout);
         EditText editText = dialog.findViewById(R.id.renameET);
         Button cancel = dialog.findViewById(R.id.rename_cancel);
-        Button ok = dialog.findViewById(R.id.rename_ok);
+        Button rename_button = dialog.findViewById(R.id.rename_ok);
         final File renameFile = new File(videoFolder.get(position).getPath());
         String fileName = renameFile.getName();
         fileName = fileName.substring(0, fileName.lastIndexOf("."));
@@ -129,18 +153,34 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
         cancel.setOnClickListener(view1 -> {
             dialog.dismiss();
         });
-        ok.setOnClickListener(view1 -> {
+
+        rename_button.setOnClickListener(view1 -> {
             String onlyPath = renameFile.getParentFile().getAbsolutePath();
             String ext = renameFile.getAbsolutePath();
-            ext = ext.substring(0, ext.lastIndexOf("."));
+            ext = ext.substring(ext.lastIndexOf("."));
             String newPath = onlyPath + "/" + editText.getText() + ext;
             File newFile = new File(newPath);
+
+
+            Log.i("rename file", newPath);
             boolean rename = renameFile.renameTo(newFile);
             if (rename) {
+                context.getApplicationContext().getContentResolver().
+                        delete(MediaStore.Files.getContentUri("external"),
+                                MediaStore.MediaColumns.DATA + "=?",
+                        new String[] {renameFile.getAbsolutePath()});
+                Intent intent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                intent.setData(Uri.fromFile(newFile));
+                context.getApplicationContext().sendBroadcast(intent);
+                Snackbar.make(view1, "File renamed", Snackbar.LENGTH_SHORT).show();
+                dialog.dismiss();
+            } else {
+                Snackbar.make(view1, "Rename failed", Snackbar.LENGTH_SHORT).show();
 
             }
-        });
 
+        });
+        dialog.show();
     }
 
     private void shareFile(int position) {
@@ -155,6 +195,12 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
     @Override
     public int getItemCount() {
         return videoFolder.size();
+    }
+
+    public void updateSearchList(ArrayList<VideoModel> searchList) {
+        videoFolder = new ArrayList<>();
+        videoFolder.addAll(searchList);
+        notifyDataSetChanged();
     }
 
     public class MyHolder extends RecyclerView.ViewHolder {

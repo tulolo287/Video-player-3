@@ -1,6 +1,8 @@
 package com.example.videoplayer3.activity;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -10,20 +12,27 @@ import com.example.videoplayer3.adapter.VideosAdapter;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.ImageView;
+import android.widget.SearchView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class VideoFolder extends AppCompatActivity {
+public class VideoFolder extends AppCompatActivity implements SearchView.OnQueryTextListener {
 private String name;
 private RecyclerView recyclerView;
 private ArrayList<VideoModel> videoModelArrayList;
 private VideosAdapter videosAdapter;
 //private Context context;
+
+    Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,9 +41,49 @@ private VideosAdapter videosAdapter;
 
         recyclerView = findViewById(R.id.rvVideoFiles);
         name = getIntent().getStringExtra("folderName");
+        toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeAsUpIndicator(getResources().getDrawable(R.drawable.ic_baseline_arrow_back_24));
+
+        int index = name.lastIndexOf("/");
+        String onlyFolderName = name.substring(index + 1);
+        toolbar.setTitle(onlyFolderName);
 
         loadVideos();
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_toolbar, menu);
+        MenuItem menuItem = menu.findItem(R.id.search);
+        SearchView searchView = (SearchView) menuItem.getActionView();
+        ImageView ivClose = searchView.findViewById(androidx.appcompat.R.id.search_close_btn);
+        ivClose.setColorFilter(ContextCompat.getColor(getApplicationContext(), R.color.white), PorterDuff.Mode.SRC_IN);
+        searchView.setQueryHint("Search file");
+        searchView.setOnQueryTextListener(this);
+        return super.onCreateOptionsMenu(menu);
+
+    }
+
+    @Override
+    public boolean onQueryTextSubmit(String s) {
+        return false;
+    }
+
+    @Override
+    public boolean onQueryTextChange(String s) {
+        String input = s.toLowerCase(Locale.ROOT);
+        ArrayList<VideoModel> searchList = new ArrayList<>();
+        for (VideoModel model : videoModelArrayList) {
+            if (model.getTitle().contains(input)) {
+                searchList.add(model);
+            }
+        }
+        videosAdapter.updateSearchList(searchList);
+        return false;
+    }
+
 
     private void loadVideos() {
         videoModelArrayList = getAllVideos(this, name);
@@ -116,4 +165,6 @@ private VideosAdapter videosAdapter;
         }
         return list;
     }
+
+
 }
