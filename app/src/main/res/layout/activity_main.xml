@@ -7,13 +7,7 @@
     android:orientation="vertical"
     tools:context=".activity.MainActivity">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        app:menu="@menu/main_toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        app:title="@string/app_name"
-        />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/folderRV"
         android:layout_width="match_parent"

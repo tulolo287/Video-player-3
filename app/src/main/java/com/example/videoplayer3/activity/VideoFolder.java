@@ -1,5 +1,6 @@
 package com.example.videoplayer3.activity;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.content.ContextCompat;
@@ -11,6 +12,7 @@ import com.example.videoplayer3.VideoModel;
 import com.example.videoplayer3.adapter.VideosAdapter;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.PorterDuff;
 import android.net.Uri;
@@ -30,6 +32,7 @@ private String name;
 private RecyclerView recyclerView;
 private ArrayList<VideoModel> videoModelArrayList;
 private VideosAdapter videosAdapter;
+private final String MY_SORT_PREF = "sortOrder";
 //private Context context;
 
     Toolbar toolbar;
@@ -59,7 +62,7 @@ private VideosAdapter videosAdapter;
         MenuItem menuItem = menu.findItem(R.id.search);
         SearchView searchView = (SearchView) menuItem.getActionView();
         ImageView ivClose = searchView.findViewById(androidx.appcompat.R.id.search_close_btn);
-        ivClose.setColorFilter(ContextCompat.getColor(getApplicationContext(), R.color.white), PorterDuff.Mode.SRC_IN);
+        //ivClose.setColorFilter(ContextCompat.getColor(getApplicationContext(), R.color.black), PorterDuff.Mode.SRC_IN);
         searchView.setQueryHint("Search file");
         searchView.setOnQueryTextListener(this);
         return super.onCreateOptionsMenu(menu);
@@ -98,6 +101,22 @@ private VideosAdapter videosAdapter;
     }
 
     private ArrayList<VideoModel> getAllVideos(Context context, String name) {
+        SharedPreferences preferences = getSharedPreferences(MY_SORT_PREF, MODE_PRIVATE);
+        String sort = preferences.getString("sorting", "sortByDate");
+        String order = null;
+
+        switch (sort) {
+            case "sortByDate":
+                order = MediaStore.MediaColumns.DATE_ADDED + " ASC";
+                break;
+            case "sortBySize":
+                order = MediaStore.MediaColumns.SIZE + " ASC";
+                break;
+            case "sortByName":
+                order = MediaStore.MediaColumns.DISPLAY_NAME + " ASC";
+                break;
+        }
+
         ArrayList<VideoModel> list = new ArrayList<>();
 
         Uri uri = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
@@ -166,5 +185,22 @@ private VideosAdapter videosAdapter;
         return list;
     }
 
-
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        SharedPreferences preferences = getSharedPreferences(MY_SORT_PREF, MODE_PRIVATE);
+        String sort = preferences.getString("sorting", "sortByDate");
+        String order = null;
+        switch (sort) {
+            case "sortByDate":
+                order = MediaStore.MediaColumns.DATE_ADDED + " ASC";
+                break;
+            case "sortByName":
+                order = MediaStore.MediaColumns.DISPLAY_NAME + " ASC";
+                break;
+            case "sortBySize":
+                order = MediaStore.MediaColumns.SIZE + " ASC";
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 }
