@@ -19,6 +19,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,6 +29,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.videoplayer3.R;
 import com.example.videoplayer3.VideoModel;
+import com.example.videoplayer3.activity.VideoPlayer;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -36,8 +38,9 @@ import java.util.ArrayList;
 
 public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> {
 
-    private ArrayList<VideoModel> videoFolder = new ArrayList<>();
+    public static ArrayList<VideoModel> videoFolder = new ArrayList<>();
     private Context context;
+
 
     public VideosAdapter(ArrayList<VideoModel> videoFolder, Context context) {
         this.videoFolder = videoFolder;
@@ -59,6 +62,14 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
         holder.duration.setText(videoFolder.get(position).getDuration());
         holder.size.setText(videoFolder.get(position).getSize());
         holder.resolution.setText(videoFolder.get(position).getResolution());
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(context, VideoPlayer.class);
+                intent.putExtra("position", position);
+                context.startActivity(intent);
+            }
+        });
         holder.menu.setOnClickListener(view -> {
             BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(context, R.style.BottomSheetDialogTheme);
             View bottomSheetView = LayoutInflater.from(context).inflate(R.layout.file_menu, null);
@@ -86,6 +97,8 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
         });
 
     }
+
+
 
     private void propertiesFile(int position) {
         Dialog dialog = new Dialog(context);
