@@ -17,14 +17,17 @@ import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
+import android.widget.SeekBar;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.example.videoplayer3.R;
 
-public class VideoPlayer extends AppCompatActivity implements View.OnTouchListener, ScaleGestureDetector.OnScaleGestureListener{
+public class VideoPlayer extends AppCompatActivity implements View.OnTouchListener, ScaleGestureDetector.OnScaleGestureListener, View.OnClickListener {
 
     int position = -1;
 
@@ -42,6 +45,30 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
     private ScaleGestureDetector scaleDetector;
     private GestureDetectorCompat gestureDetector;
 
+    @Override
+    public void onClick(View view) {
+        switch (view.getId()) {
+            case R.id.back:
+                onBackPressed();
+                break;
+            case R.id.playPause:
+                if (videoView.isPlaying()) {
+                    videoView.pause();
+                    playPause.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_play_arrow_24));
+                } else {
+                    videoView.start();
+                    playPause.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_pause_24));
+                }
+                break;
+            case R.id.back_conrol:
+                videoView.seekTo(videoView.getCurrentPosition() - 10000);
+                break;
+            case R.id.forwardControl:
+                videoView.seekTo(videoView.getCurrentPosition() + 10000);
+                break;
+        }
+    }
+
     private enum Mode {
         NONE, DRAG, ZOOM
 
@@ -58,6 +85,10 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
     private float prevDx = 0f;
     private float prevDy = 0f;
 
+    ImageButton back, playPause, back10, forward10;
+    TextView title;
+    SeekBar videoSeekbar;
+    TextView videoTime;
 
     @Override
     public boolean onScale(ScaleGestureDetector scaleGestureDetector) {
@@ -168,6 +199,12 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
         gestureDetector = new GestureDetectorCompat(getApplicationContext(), new GestureDetector());
 
 
+        title = findViewById(R.id.title_control);
+        back = findViewById(R.id.back);
+        videoSeekbar = findViewById(R.id.seekControl);
+        videoTime = findViewById(R.id.timeControl);
+
+        back.setOnClickListener(this);
 
         zoomLayout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -195,6 +232,56 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
         } else {
             Toast.makeText(this, "No video path", Toast.LENGTH_SHORT).show();
         }
+
+        initalizeSeekBar();
+        setHandler();
+
+    }
+
+    private void setHandler() {
+
+    }
+
+    private void initalizeSeekBar() {
+        videoSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    videoView.seekTo(progress);
+                    videoView.start();
+                    int currentPosition = videoView.getCurrentPosition();
+                    videoTime.setText(""+ convertIntoTime(videoView.getDuration() - currentPosition));
+                }
+            }
+
+            private String convertIntoTime(int ms) {
+                String time;
+                int x, seconds, minutes, hours;
+                x = ms / 1000;
+                seconds = x % 60;
+                x /= 60;
+                minutes = x % 60;
+                x /= 60;
+                hours = x % 24;
+                if (hours != 0) {
+                    time = String.format("%02d", hours) + ":" + String.format("%02d", minutes) + ":" +
+                            String.format("%02d", seconds);
+                } else {
+                    time = String.format("%02d", minutes) + ":" + String.format("%02d", seconds);
+                }
+                return time;
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
     }
 
     private class GestureDetector extends android.view.GestureDetector.SimpleOnGestureListener {
