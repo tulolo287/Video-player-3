@@ -18,18 +18,21 @@
         >
 
         <ImageView
+            android:id="@+id/back_conrol"
             android:layout_weight="1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_replay_10_24" />
 
         <ImageView
+            android:id="@+id/playPause"
             android:layout_weight="1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_play_arrow_24" />
 
         <ImageView
+            android:id="@+id/forwardControl"
             android:layout_weight="1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -46,12 +49,13 @@
 
         >
         <SeekBar
-
+            android:id="@+id/seekControl"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:progress="50" />
         <TextView
+            android:id="@+id/timeControl"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="0"

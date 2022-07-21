@@ -3,10 +3,17 @@ package com.example.videoplayer3.activity;
 import static com.example.videoplayer3.adapter.VideosAdapter.videoFolder;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.view.GestureDetectorCompat;
 
+import android.graphics.Point;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
+import android.view.Display;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -17,7 +24,7 @@ import android.widget.VideoView;
 
 import com.example.videoplayer3.R;
 
-public class VideoPlayer extends AppCompatActivity {
+public class VideoPlayer extends AppCompatActivity implements View.OnTouchListener, ScaleGestureDetector.OnScaleGestureListener{
 
     int position = -1;
 
@@ -25,6 +32,115 @@ public class VideoPlayer extends AppCompatActivity {
     LinearLayout custom_controls;
     RelativeLayout zoomLayout;
    private boolean isCustomControls;
+
+   private static final float MIN_ZOOM = 1.0f;
+    private static final float MAX_ZOOM = 5.0f;
+    boolean intLeft, intRight;
+    private Display display;
+    private Point size;
+    private Mode mode = Mode.NONE;
+    private ScaleGestureDetector scaleDetector;
+    private GestureDetectorCompat gestureDetector;
+
+    private enum Mode {
+        NONE, DRAG, ZOOM
+
+    };
+    int device_width;
+    private int sWidth;
+    private boolean isEnable = true;
+    private float scale = 1.0f;
+    private float lastScaleFactor = 0f;
+    private float startX = 0f;
+    private float startY = 0f;
+    private float dx = 0f;
+    private float dy = 0f;
+    private float prevDx = 0f;
+    private float prevDy = 0f;
+
+
+    @Override
+    public boolean onScale(ScaleGestureDetector scaleGestureDetector) {
+        float scaleFactor = scaleDetector.getScaleFactor();
+        if (lastScaleFactor == 0 || (Math.signum(scaleFactor) == Math.signum(lastScaleFactor))) {
+            scale *= scaleFactor;
+            scale = Math.max(MIN_ZOOM, Math.min(scale, MAX_ZOOM));
+            lastScaleFactor = scaleFactor;
+        } else {
+            lastScaleFactor = 0;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onScaleBegin(ScaleGestureDetector scaleGestureDetector) {
+        return true;
+    }
+
+    @Override
+    public void onScaleEnd(ScaleGestureDetector scaleGestureDetector) {
+
+    }
+
+    @Override
+    public boolean onTouch(View view, MotionEvent motionEvent) {
+        switch (motionEvent.getAction() & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_DOWN:
+                hideCustomControls();
+                if (scale > MIN_ZOOM) {
+                    mode = Mode.DRAG;
+                    startX = motionEvent.getX() - prevDx;
+                    startY = motionEvent.getY() - prevDy;
+                }
+                break;
+            case MotionEvent.ACTION_MOVE:
+                hideCustomControls();
+                isEnable = false;
+                if (mode == Mode.DRAG) {
+                    dx = motionEvent.getX() - startX;
+                    dy = motionEvent.getY() - startY;
+                }
+                break;
+            case MotionEvent.ACTION_POINTER_DOWN:
+                mode = Mode.ZOOM;
+                break;
+            case MotionEvent.ACTION_POINTER_UP:
+                mode = Mode.DRAG;
+                break;
+            case MotionEvent.ACTION_UP:
+                mode = Mode.NONE;
+                prevDx = dx;
+                prevDy = dy;
+                break;
+        }
+        scaleDetector.onTouchEvent(motionEvent);
+        gestureDetector.onTouchEvent(motionEvent);
+        if ((mode == Mode.DRAG && scale >= MIN_ZOOM) || mode == Mode.ZOOM) {
+            zoomLayout.requestDisallowInterceptTouchEvent(true);
+            float maxDx = (child().getWidth() - (child().getWidth() / scale)) / 2 * scale;
+            float maxDy = (child().getHeight() - (child().getHeight() / scale)) / 2 * scale;
+            dx = Math.min(Math.max(dx, -maxDx), maxDx);
+            dy = Math.min(Math.max(dy, -maxDy), maxDy);
+            applyScaleAndTranslation();
+        }
+        return true;
+    }
+
+    private void applyScaleAndTranslation() {
+        child().setScaleX(scale);
+        child().setScaleY(scale);
+        child().setTranslationX(dx);
+        child().setTranslationY(dy);
+    }
+
+    private View child() {
+        return zoomLayout(0);
+    }
+
+    private View zoomLayout(int i) {
+        return videoView;
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,6 +155,19 @@ public class VideoPlayer extends AppCompatActivity {
 
         videoView = findViewById(R.id.video_view);
         zoomLayout = findViewById(R.id.video_zoom);
+
+        display = getWindowManager().getDefaultDisplay();
+        size = new Point();
+        display.getSize(size);
+        sWidth = size.x;
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
+        device_width = displayMetrics.widthPixels;
+        zoomLayout.setOnTouchListener(this);
+        scaleDetector = new ScaleGestureDetector(getApplicationContext(), this);
+        gestureDetector = new GestureDetectorCompat(getApplicationContext(), new GestureDetector());
+
+
 
         zoomLayout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -65,6 +194,36 @@ public class VideoPlayer extends AppCompatActivity {
             });
         } else {
             Toast.makeText(this, "No video path", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private class GestureDetector extends android.view.GestureDetector.SimpleOnGestureListener {
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            if (isEnable) {
+                hideCustomControls();
+                isEnable = false;
+            } else {
+                showCustomControl();
+                isEnable = true;
+            }
+            return super.onSingleTapConfirmed(e);
+        }
+
+        @Override
+        public boolean onDoubleTap(MotionEvent e) {
+            if (e.getX() < (sWidth / 2)) {
+                intLeft = true;
+                intRight = false;
+                videoView.seekTo(videoView.getCurrentPosition() - 10000);
+                Toast.makeText(VideoPlayer.this, "-10sec", Toast.LENGTH_SHORT).show();
+            } else if (e.getX() > (sWidth / 2)) {
+                intLeft = false;
+                intRight = true;
+                videoView.seekTo(videoView.getCurrentPosition() + 10000);
+                Toast.makeText(VideoPlayer.this, "+10sec", Toast.LENGTH_SHORT).show();
+            }
+            return super.onDoubleTap(e);
         }
     }
 
