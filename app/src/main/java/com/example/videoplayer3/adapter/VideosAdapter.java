@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -29,6 +30,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.example.videoplayer3.R;
 import com.example.videoplayer3.VideoModel;
+import com.example.videoplayer3.activity.VideoFolder;
 import com.example.videoplayer3.activity.VideoPlayer;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.snackbar.Snackbar;
@@ -40,18 +42,20 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
 
     public static ArrayList<VideoModel> videoFolder = new ArrayList<>();
     private Context context;
+    VideoFolder videoFolderActivity;
 
 
     public VideosAdapter(ArrayList<VideoModel> videoFolder, Context context) {
         this.videoFolder = videoFolder;
         this.context = context;
+        videoFolderActivity = (VideoFolder) context;
     }
 
     @NonNull
     @Override
     public MyHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(context).inflate(R.layout.files_view, parent, false);
-        return new MyHolder(view);
+        return new MyHolder(view, videoFolderActivity);
     }
 
     @Override
@@ -70,6 +74,15 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
                 context.startActivity(intent);
             }
         });
+        if (videoFolderActivity.is_selectable) {
+            holder.checkBox.setVisibility(View.VISIBLE);
+            holder.menu.setVisibility(View.GONE);
+            holder.checkBox.setChecked(false);
+
+        } else {
+            holder.checkBox.setVisibility(View.GONE);
+            holder.menu.setVisibility(View.VISIBLE);
+        }
         holder.menu.setOnClickListener(view -> {
             BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(context, R.style.BottomSheetDialogTheme);
             View bottomSheetView = LayoutInflater.from(context).inflate(R.layout.file_menu, null);
@@ -216,19 +229,31 @@ public class VideosAdapter extends RecyclerView.Adapter<VideosAdapter.MyHolder> 
         notifyDataSetChanged();
     }
 
-    public class MyHolder extends RecyclerView.ViewHolder {
+    public class MyHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         ImageView thumbnail, menu;
         TextView title, size, duration, resolution;
+        CheckBox checkBox;
+        VideoFolder videoFolderActivity;
 
-        public MyHolder(@NonNull View itemView) {
+        public MyHolder(@NonNull View itemView, VideoFolder videoFolderActivity) {
             super(itemView);
 
+            this.videoFolderActivity = videoFolderActivity;
+            checkBox = itemView.findViewById(R.id.video_folder_checkbox);
             thumbnail = itemView.findViewById(R.id.thumbnail);
             size = itemView.findViewById(R.id.videoSize);
             title = itemView.findViewById(R.id.videoTitle);
             duration = itemView.findViewById(R.id.videoDuration);
             resolution = itemView.findViewById(R.id.videoQuality);
             menu = itemView.findViewById(R.id.videoMenu);
+
+            itemView.setOnLongClickListener(videoFolderActivity);
+            checkBox.setOnClickListener(this);
+        }
+
+        @Override
+        public void onClick(View view) {
+            videoFolderActivity.prepareSelection(view, getAdapterPosition());
         }
     }
 }

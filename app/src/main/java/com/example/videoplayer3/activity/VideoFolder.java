@@ -17,17 +17,21 @@ import android.database.Cursor;
 import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.SearchView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class VideoFolder extends AppCompatActivity implements SearchView.OnQueryTextListener {
+public class VideoFolder extends AppCompatActivity implements SearchView.OnQueryTextListener, View.OnLongClickListener {
 private String name;
 private RecyclerView recyclerView;
 private ArrayList<VideoModel> videoModelArrayList;
@@ -36,6 +40,10 @@ private final String MY_SORT_PREF = "sortOrder";
 //private Context context;
 
     Toolbar toolbar;
+    public boolean is_selectable = false;
+    TextView countSelected;
+    ArrayList<VideoModel> selectedList = new ArrayList<>();
+    int count = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,6 +51,8 @@ private final String MY_SORT_PREF = "sortOrder";
         setContentView(R.layout.activity_video_folder);
 
         recyclerView = findViewById(R.id.rvVideoFiles);
+        countSelected = findViewById(R.id.count_selected);
+
         name = getIntent().getStringExtra("folderName");
         toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -54,6 +64,25 @@ private final String MY_SORT_PREF = "sortOrder";
         toolbar.setTitle(onlyFolderName);
 
         loadVideos();
+        loadBannerAds();
+    }
+
+    private void loadBannerAds() {
+
+    }
+    private void refresh() {
+        if (name != null && videoModelArrayList.size() > 0) {
+            videoModelArrayList.clear();
+
+            new Handler().postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    loadVideos();
+                    videosAdapter.notifyDataSetChanged();
+                    Toast.makeText(VideoFolder.this, "Videos refreshed", Toast.LENGTH_SHORT).show();
+                }
+            }, 1500);
+        }
     }
 
     @Override
@@ -187,20 +216,100 @@ private final String MY_SORT_PREF = "sortOrder";
 
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        SharedPreferences preferences = getSharedPreferences(MY_SORT_PREF, MODE_PRIVATE);
-        String sort = preferences.getString("sorting", "sortByDate");
+        SharedPreferences.Editor editor = getSharedPreferences(MY_SORT_PREF, MODE_PRIVATE).edit();
+        //String sort = preferences.getString("sorting", "sortByDate");
         String order = null;
-        switch (sort) {
-            case "sortByDate":
-                order = MediaStore.MediaColumns.DATE_ADDED + " ASC";
+        switch (item.getItemId()) {
+            case R.id.sort_by_date:
+                editor.putString("sorting", "sortByDate");
+                editor.apply();
+                this.recreate();
+                //order = MediaStore.MediaColumns.DATE_ADDED + " ASC";
                 break;
-            case "sortByName":
-                order = MediaStore.MediaColumns.DISPLAY_NAME + " ASC";
+            case R.id.sort_by_name:
+                editor.putString("sorting", "sortByName");
+                editor.apply();
+                this.recreate();
+                //order = MediaStore.MediaColumns.DISPLAY_NAME + " ASC";
                 break;
-            case "sortBySize":
-                order = MediaStore.MediaColumns.SIZE + " ASC";
+            case R.id.sort_by_size:
+                editor.putString("sorting", "sortBySize");
+                editor.apply();
+                this.recreate();
+                //order = MediaStore.MediaColumns.SIZE + " ASC";
                 break;
+            case R.id.refresh:
+                refresh();
+                break;
+            case android.R.id.home:
+                if (is_selectable) {
+                    cleaSelectingToolbar();
+                    videosAdapter.notifyDataSetChanged();
+                } else {
+                    onBackPressed();
+                }
+                break;
+
         }
         return super.onOptionsItemSelected(item);
+    }
+
+
+    @Override
+    public boolean onLongClick(View view) {
+        toolbar.getMenu().clear();
+        toolbar.inflateMenu(R.menu.item_selected_menu);
+        is_selectable = true;
+        videosAdapter.notifyDataSetChanged();
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeAsUpIndicator(getResources().getDrawable(R.drawable.ic_baseline_arrow_back_24));
+
+        return true;
+    }
+
+    public void prepareSelection(View view, int adapterPosition) {
+        if (((CheckBox) view).isChecked()) {
+            selectedList.add(videoModelArrayList.get(adapterPosition));
+            count++;
+            updateCount(count);
+        } else {
+            selectedList.remove(videoModelArrayList.get(adapterPosition));
+            count--;
+            updateCount(count);
+        }
+    }
+
+    private void updateCount(int count) {
+        if (count == 0) {
+            countSelected.setText("0 item selected");
+        } else {
+            countSelected.setText(count + " items selected");
+        }
+    }
+
+    private void cleaSelectingToolbar() {
+        is_selectable = false;
+        toolbar.getMenu().clear();
+        toolbar.inflateMenu(R.menu.main_toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeAsUpIndicator(getResources().getDrawable(R.drawable.ic_baseline_arrow_back_24));
+
+        int index = name.lastIndexOf("/");
+        String onlyFolderName = name.substring(index + 1);
+        countSelected.setText(onlyFolderName);
+        count = 0;
+        selectedList.clear();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (is_selectable) {
+
+            cleaSelectingToolbar();
+            videosAdapter.notifyDataSetChanged();
+        } else {
+            super.onBackPressed();
+        }
+
     }
 }

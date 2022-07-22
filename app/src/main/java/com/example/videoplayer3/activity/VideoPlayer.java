@@ -9,15 +9,16 @@ import android.graphics.Point;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.view.Display;
-import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
@@ -36,7 +37,7 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
     RelativeLayout zoomLayout;
    private boolean isCustomControls;
 
-   private static final float MIN_ZOOM = 1.0f;
+    private static final float MIN_ZOOM = 1.0f;
     private static final float MAX_ZOOM = 5.0f;
     boolean intLeft, intRight;
     private Display display;
@@ -60,7 +61,7 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
                     playPause.setImageDrawable(getResources().getDrawable(R.drawable.ic_baseline_pause_24));
                 }
                 break;
-            case R.id.back_conrol:
+            case R.id.back_control:
                 videoView.seekTo(videoView.getCurrentPosition() - 10000);
                 break;
             case R.id.forwardControl:
@@ -85,7 +86,7 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
     private float prevDx = 0f;
     private float prevDy = 0f;
 
-    ImageButton back, playPause, back10, forward10;
+    ImageView back, playPause, back10, forward10;
     TextView title;
     SeekBar videoSeekbar;
     TextView videoTime;
@@ -203,8 +204,16 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
         back = findViewById(R.id.back);
         videoSeekbar = findViewById(R.id.seekControl);
         videoTime = findViewById(R.id.timeControl);
+        forward10 = findViewById(R.id.forwardControl);
+        back10 = findViewById(R.id.back_control);
+        playPause = findViewById(R.id.playPause);
 
+
+        forward10.setOnClickListener(this);
+        back10.setOnClickListener(this);
+        playPause.setOnClickListener(this);
         back.setOnClickListener(this);
+
 
         zoomLayout.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -221,11 +230,14 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
             }
         });
 
+
+
         if (path != null) {
             videoView.setVideoPath(path);
             videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
                 @Override
                 public void onPrepared(MediaPlayer mediaPlayer) {
+                    videoSeekbar.setMax(videoView.getDuration());
                     videoView.start();
                 }
             });
@@ -233,25 +245,40 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
             Toast.makeText(this, "No video path", Toast.LENGTH_SHORT).show();
         }
 
-        initalizeSeekBar();
+        initializeSeekBar();
         setHandler();
 
     }
 
     private void setHandler() {
-
+        Handler handler = new Handler();
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                if (videoView.getDuration() > 0) {
+                    int currentPosition = videoView.getCurrentPosition();
+                    //videoView.seekTo(currentPosition);
+                    videoSeekbar.setProgress(currentPosition);
+                }
+                handler.postDelayed(this, 0);
+            }
+        };
+        handler.postDelayed(runnable, 500);
     }
 
-    private void initalizeSeekBar() {
+    private void initializeSeekBar() {
         videoSeekbar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (videoSeekbar.getId() == R.id.seekControl) {
+
                 if (fromUser) {
                     videoView.seekTo(progress);
                     videoView.start();
                     int currentPosition = videoView.getCurrentPosition();
-                    videoTime.setText(""+ convertIntoTime(videoView.getDuration() - currentPosition));
+                    videoTime.setText("" + convertIntoTime(videoView.getDuration() - currentPosition));
                 }
+            }
             }
 
             private String convertIntoTime(int ms) {
@@ -347,6 +374,7 @@ public class VideoPlayer extends AppCompatActivity implements View.OnTouchListen
         if (window == null) {
             return;
         }
+
         window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
 

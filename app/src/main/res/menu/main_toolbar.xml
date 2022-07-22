@@ -23,6 +23,23 @@
                 android:title="By size"
                 />
         </menu>
+
+    </item>
+
+    <item
+        android:title="More"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/ic_baseline_more_vert_24"
+        >
+<menu>
+    <item
+        android:id="@+id/refresh"
+        android:title="Refresh"
+        app:showAsAction="never"
+        >
+
+    </item>
+</menu>
     </item>
 
 </menu>

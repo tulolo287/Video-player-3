@@ -21,7 +21,8 @@
             android:layout_centerHorizontal="true"
             android:id="@+id/video_view"
             />
-        <include layout="@layout/custom_controls"/>
+
+        <include layout="@layout/custom_controls" />
     </RelativeLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
