@@ -3,7 +3,6 @@ package com.example.videoplayer3.activity;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -11,10 +10,12 @@ import com.example.videoplayer3.R;
 import com.example.videoplayer3.VideoModel;
 import com.example.videoplayer3.adapter.VideosAdapter;
 
+import android.content.ContentUris;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.graphics.PorterDuff;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,6 +29,7 @@ import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -37,6 +39,7 @@ private RecyclerView recyclerView;
 private ArrayList<VideoModel> videoModelArrayList;
 private VideosAdapter videosAdapter;
 private final String MY_SORT_PREF = "sortOrder";
+private ArrayList<Uri> uris = new ArrayList<>();
 //private Context context;
 
     Toolbar toolbar;
@@ -139,7 +142,7 @@ private final String MY_SORT_PREF = "sortOrder";
                 order = MediaStore.MediaColumns.DATE_ADDED + " ASC";
                 break;
             case "sortBySize":
-                order = MediaStore.MediaColumns.SIZE + " ASC";
+                order = MediaStore.MediaColumns.SIZE + " DESC";
                 break;
             case "sortByName":
                 order = MediaStore.MediaColumns.DISPLAY_NAME + " ASC";
@@ -166,7 +169,7 @@ private final String MY_SORT_PREF = "sortOrder";
         String selection = MediaStore.Video.Media.DATA + " like?";
         String[] selectionArgs = new String[]{"%" + name + "%"};
 
-        Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, orderBy);
+        Cursor cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs, order);
         if (cursor != null) {
             while(cursor.moveToNext()) {
                 String id = cursor.getString(0);
@@ -203,7 +206,7 @@ private final String MY_SORT_PREF = "sortOrder";
                 }
 
 
-                VideoModel files = new VideoModel(id, path, title, human_can_read, duration_formatted, resolution, disName, width_height);
+                VideoModel files = new VideoModel(id, path, title, fileReadableSize(size), duration_formatted, resolution, disName, width_height);
 
                     //if (name.endsWith(bucket_display_name)) {
                         list.add(files);
@@ -212,6 +215,26 @@ private final String MY_SORT_PREF = "sortOrder";
             cursor.close();
         }
         return list;
+    }
+
+    private String fileReadableSize(long size) {
+        String s = "";
+        long kilobyte = 1024;
+        long megabyte = kilobyte * kilobyte;
+        long gigabyte = megabyte * megabyte;
+
+        double kb = (double) size / kilobyte;
+        double mb = (double) kb / kilobyte;
+        double gb = (double) mb / kilobyte;
+
+        if (size < kilobyte) {
+            s = size + "bytes";
+        } else if (size >= kilobyte && size <= megabyte) {
+            s = String.format("%2.f", kb) + "KB";
+        } else if (size >= megabyte && size <= gigabyte) {
+            s = String.format("%2.f", mb) + "MB";
+        }
+        return s;
     }
 
     @Override
@@ -249,9 +272,50 @@ private final String MY_SORT_PREF = "sortOrder";
                     onBackPressed();
                 }
                 break;
+            case R.id.delete_selected:
+                Thread thread = new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        boolean isDeleted = selectedFile(selectedList, true);
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (isDeleted) {
+                                    cleaSelectingToolbar();
+                                    refresh();
+                                    Toast.makeText(VideoFolder.this, "Deleted success", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(VideoFolder.this, "Error deleting", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+                    }
+                });
+                break;
+            case R.id.share_selected:
+                boolean isSuccess = selectedFile(selectedList, false);
+                if (isSuccess) {
+                    cleaSelectingToolbar();
+                    refresh();
+                }
+                break;
+
+            case R.id.select_all:
+                selectAll();
+                break;
 
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void selectAll() {
+        selectedList.addAll(videoModelArrayList);
+        CheckBox ch = findViewById(R.id.video_folder_checkbox);
+        ch.setChecked(true);
+
+        System.out.println(selectedList);
+        Toast.makeText(this, "Select all", Toast.LENGTH_SHORT).show();
+
     }
 
 
@@ -299,6 +363,38 @@ private final String MY_SORT_PREF = "sortOrder";
         countSelected.setText(onlyFolderName);
         count = 0;
         selectedList.clear();
+    }
+
+    private boolean selectedFile(ArrayList<VideoModel> list, boolean canDelete) {
+        for (int i = 0; i < list.size(); i++) {
+            String id = list.get(i).getId();
+            String path = list.get(i).getPath();
+            uris.add(Uri.parse(path));
+            if(canDelete) {
+                Uri contentUris = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, Long.parseLong(id));
+                File file = new File(path);
+                boolean isDeleted = file.delete();
+                if (isDeleted) {
+                    getApplicationContext().getContentResolver().delete(contentUris, null, null);
+
+                } else {
+                    Toast.makeText(this, "Error deleting", Toast.LENGTH_SHORT).show();
+                }
+            }
+            if(!canDelete) {
+                MediaScannerConnection.scanFile(getApplicationContext(), new String[]{String.valueOf(uris)}, null, new MediaScannerConnection.OnScanCompletedListener() {
+                    @Override
+                    public void onScanCompleted(String s, Uri uri) {
+                        Intent intent = new Intent();
+                        intent.setType("video/*");
+                        intent.putExtra(Intent.EXTRA_STREAM, uris);
+                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+                        startActivity(Intent.createChooser(intent, "share"));
+                    }
+                });
+            }
+        }
+        return true;
     }
 
     @Override
