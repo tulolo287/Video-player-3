@@ -3,18 +3,28 @@ package com.example.videoplayer3.activity;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.videoplayer3.R;
 import com.example.videoplayer3.VideoModel;
 import com.example.videoplayer3.adapter.VideosAdapter;
+import com.google.android.material.snackbar.Snackbar;
 
 import android.content.ContentUris;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Bundle;
@@ -25,6 +35,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.CheckBox;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,6 +51,7 @@ private ArrayList<VideoModel> videoModelArrayList;
 private VideosAdapter videosAdapter;
 private final String MY_SORT_PREF = "sortOrder";
 private ArrayList<Uri> uris = new ArrayList<>();
+
 //private Context context;
 
     Toolbar toolbar;
@@ -47,6 +59,8 @@ private ArrayList<Uri> uris = new ArrayList<>();
     TextView countSelected;
     ArrayList<VideoModel> selectedList = new ArrayList<>();
     int count = 0;
+    LinearLayout parent_layout;
+    Paint mClearPaint;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,6 +69,7 @@ private ArrayList<Uri> uris = new ArrayList<>();
 
         recyclerView = findViewById(R.id.rvVideoFiles);
         countSelected = findViewById(R.id.count_selected);
+        parent_layout = findViewById(R.id.parent_layout);
 
         name = getIntent().getStringExtra("folderName");
         toolbar = findViewById(R.id.toolbar);
@@ -175,7 +190,7 @@ private ArrayList<Uri> uris = new ArrayList<>();
                 String id = cursor.getString(0);
                 String path = cursor.getString(1);
                 String title = cursor.getString(2);
-                int size = cursor.getInt(3);
+                long size = cursor.getLong(3);
                 int duration = cursor.getInt(4);
                 String resolution = cursor.getString(5);
                 String disName = cursor.getString(6);
@@ -217,22 +232,86 @@ private ArrayList<Uri> uris = new ArrayList<>();
         return list;
     }
 
+    ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+        @Override
+        public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+            return false;
+        }
+
+        @Override
+        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+            Snackbar snackbar = Snackbar.make(parent_layout, "are you sure...", Snackbar.LENGTH_INDEFINITE);
+            snackbar.setAction("Yes", new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Thread thread = new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            boolean isDeleted = selectedFile(selectedList, true);
+                            if (isDeleted) {
+                                selectedList.clear();
+                                snackbar.dismiss();
+                            } else {
+                                Toast.makeText(VideoFolder.this, "Delete fail", Toast.LENGTH_SHORT).show();
+                                Snackbar.make(parent_layout, "Delete fail", Snackbar.LENGTH_SHORT);
+                            }
+                        }
+                    });
+                }
+            });
+            snackbar.show();
+            snackbar.setActionTextColor(Color.RED);
+        }
+
+        @Override
+        public void onChildDraw(@NonNull Canvas c, @NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, float dX, float dY, int actionState, boolean isCurrentlyActive) {
+            super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
+            ColorDrawable mBackground;
+            int backgroundColor;
+            Drawable deleteDrawable;
+            int intrinsicWidth;
+            int intrinsicHeight;
+            mBackground = new ColorDrawable();
+            backgroundColor = Color.parseColor("#0f5");
+            mClearPaint = new Paint();
+            mClearPaint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.CLEAR));
+            deleteDrawable = ContextCompat.getDrawable(VideoFolder.this, R.drawable.ic_baseline_delete_forever_24);
+            intrinsicWidth = deleteDrawable.getIntrinsicWidth();
+            intrinsicHeight = deleteDrawable.getIntrinsicHeight();
+
+            View itemView = viewHolder.itemView;
+            int itemHeight = itemView.getHeight();
+            boolean isCanceled = dx == 0 && !isCurrentlyActive;
+            if (isCanceled) {
+                clearCanvas(c, itemView.getRight() + dx, (float) itemView.getTop()),
+                        (float) itemView.getRight(),(float) itemView.getBottom());
+                super.onChildDraw();
+            }
+        }
+    };
+
+
+
     private String fileReadableSize(long size) {
         String s = "";
         long kilobyte = 1024;
         long megabyte = kilobyte * kilobyte;
         long gigabyte = megabyte * megabyte;
+        long terabyte = gigabyte * gigabyte;
 
         double kb = (double) size / kilobyte;
         double mb = (double) kb / kilobyte;
         double gb = (double) mb / kilobyte;
+        double tb = (double) gb / kilobyte;
 
         if (size < kilobyte) {
-            s = size + "bytes";
+            s = size + " bytes";
         } else if (size >= kilobyte && size <= megabyte) {
-            s = String.format("%2.f", kb) + "KB";
+            s = String.format("%.2f", kb) + "KB";
         } else if (size >= megabyte && size <= gigabyte) {
-            s = String.format("%2.f", mb) + "MB";
+            s = String.format("%.2f", mb) + "MB";
+        } else if (size >= gigabyte && size <= terabyte) {
+            s = String.format("%.2f", gb) + "GB";
         }
         return s;
     }
